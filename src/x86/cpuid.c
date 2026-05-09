@@ -541,6 +541,7 @@ struct cpuInfo* get_cpu_info(void) {
   if(cpu->hybrid_flag) cpu->num_cpus = 2;
 
   struct cpuInfo* ptr = cpu;
+  uint32_t last_core_type = 0xFF;
   for(uint32_t i=0; i < cpu->num_cpus; i++) {
     int32_t first_core;
     set_cpu_module(i, cpu->num_cpus, &first_core);
@@ -567,6 +568,15 @@ struct cpuInfo* get_cpu_info(void) {
       cpuid(&eax, &ebx, &ecx, &edx);
       ptr->core_type = get_core_type();
     }
+
+    if(
+      ptr->core_type != CORE_TYPE_UNKNOWN &&
+      ptr->core_type == last_core_type
+    ) {
+      cpu->num_cpus = 1;
+      break;
+    }
+
     ptr->first_core_id = first_core;
     ptr->module_id = i;
     ptr->feat = get_features_info(ptr);
@@ -587,6 +597,7 @@ struct cpuInfo* get_cpu_info(void) {
     else {
       ptr->topo = get_topology_info(ptr, ptr->cach, -1);
     }
+    last_core_type = ptr->core_type;
 
     // If topo is NULL, return early, as get_peak_performance
     // requries non-NULL topology.
